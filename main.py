@@ -56,4 +56,6 @@ speedtimer.start(10000)
 pet.show()
 
 sys.exit(app.exec())
+print("lol burger is alive now atlesat")
+
 
