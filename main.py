@@ -1,8 +1,32 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QLabel
+from PyQt6.QtWidgets import QApplication, QLabel,QWidget
 from PyQt6.QtCore import Qt , QTimer
 from PyQt6.QtGui import QMovie,QPixmap
 import random
+
+
+class DiscoOverlay(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.colour="red"
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowTransparentForInput
+        )
+
+        self.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground
+        )
+
+    def paintEvent(self, event):
+        from PyQt6.QtGui import QPainter,QColor
+
+        painter=QPainter(self)
+        painter.setOpacity (0.25)
+        painter.fillRect(self.rect(),QColor(self.colour))
 
 class KittyLabel(QLabel):
     def __init__(self, *args,**kwargs):
@@ -35,12 +59,16 @@ class KittyLabel(QLabel):
             self.dragging=False
             self.drag_offset=None
             self.releaseMouse()
-            
+
 
 
 app = QApplication(sys.argv)
+overlay=DiscoOverlay()
+overlay.setGeometry(app.primaryScreen().geometry())
+overlay.hide()
+pet=KittyLabel("")
 
-pet =KittyLabel("")
+
 spin_movie=QMovie("kitty_spin.gif")
 stand_movie=QMovie("kitty_stand.gif")
 pat_movie = QMovie("kitty_pat.gif")
@@ -87,6 +115,10 @@ speed=10
 normal_speed=speed
 
 is_zooming=False
+disco_colours =["red","magenta","cyan","yellow","lime"]
+disco_index=0
+
+
 click_count=0
 
 
@@ -118,6 +150,17 @@ def move_kitty():
     play_gif(spin_movie)
 
     pet.move(pet.x() + speed * direction_x,pet.y() + speed * direction_y)
+    
+ 
+    if is_zooming:
+        wiggle_x=random.randint(-10,10)
+        wiggle_y=random.randint(-10,10)
+        pet.move(
+            pet.x()+wiggle_x,
+            pet.y()+wiggle_y
+        )
+
+
     if pet.x() >= 1300:
         direction_x=-1
     if pet.x() <= 0:
@@ -194,11 +237,18 @@ def zoomies():
     if is_sleeping or is_resting:
         return
     is_zooming=True
-    speed=70
+    overlay.show()
+    speed=130
+    disco_timer.start()
     zoom_timer.start(3000)
 
 
+def change_disco_colour():
+    global disco_index
 
+    overlay.colour=disco_colours[disco_index]
+    overlay.update()
+    disco_index=(disco_index + 1) % len(disco_colours)
 
 
 
@@ -206,6 +256,14 @@ def end_zoomies():
     global speed,is_zooming
     is_zooming=False
     speed=normal_speed
+    disco_timer.stop()
+    overlay.hide()
+    
+
+
+disco_timer=QTimer()
+disco_timer.timeout.connect(change_disco_colour)
+disco_timer.setInterval(150)
 
 zoom_timer=QTimer()
 zoom_timer.timeout.connect(end_zoomies)
