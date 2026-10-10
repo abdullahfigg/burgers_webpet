@@ -5,15 +5,37 @@ from PyQt6.QtGui import QMovie,QPixmap
 import random
 
 class KittyLabel(QLabel):
+    def __init__(self, *args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.dragging=False
+        self.drag_offset=None
+
     def mousePressEvent(self, event):
-        if event.button()==Qt.MouseButton.RightButton:
+        if event.button()==Qt.MouseButton.MiddleButton:
+            self.dragging = True
+            self.drag_offset=event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            self.grabMouse()
+    
+        elif event.button()==Qt.MouseButton.RightButton:
             zoomies()
         elif event.button()==Qt.MouseButton.LeftButton:
             if is_sleeping:
                 wake_from_sleep()
             else:
                 handle_click()
+    def mouseMoveEvent(self, event):
+        if self.dragging:
+            new_position = (
+                event.globalPosition().toPoint() - self.drag_offset
+            )
+            self.move(new_position)
 
+    def mouseReleaseEvent(self, event):
+        if event.button()==Qt.MouseButton.MiddleButton:
+            self.dragging=False
+            self.drag_offset=None
+            self.releaseMouse()
+            
 
 
 app = QApplication(sys.argv)
@@ -80,6 +102,10 @@ def move_kitty():
     global direction_x
     global direction_y
     global speed
+
+    if pet.dragging:
+        return
+
     if is_sleeping:
         return
     if is_resting:
